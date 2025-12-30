@@ -739,7 +739,19 @@ func GenFieldsFromProperties(props []Property) []string {
 			}
 		}
 
-		field += fmt.Sprintf("    %s %s", goFieldName, p.GoTypeDef())
+		switch {
+		case GetTemplateSingleton().Lookup("field-type.tmpl") != nil:
+			fieldDef, err := ExecuteTemplateToString("field-type.tmpl", map[string]any{"FieldName": goFieldName, "FieldType": p.GoTypeDef(), "Field": p})
+			if err != nil {
+				field += fmt.Sprintf("/** template error: %s */", err.Error())
+			} else {
+				field += fmt.Sprintf("    %s", fieldDef)
+				break
+			}
+			fallthrough
+		default:
+			field += fmt.Sprintf("    %s %s", goFieldName, p.GoTypeDef())
+		}
 
 		shouldOmitEmpty := (!p.Required || p.ReadOnly || p.WriteOnly) &&
 			(!p.Required || !p.ReadOnly || !globalState.options.Compatibility.DisableRequiredReadOnlyAsPointer)
